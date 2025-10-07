@@ -227,19 +227,16 @@ export type Database = {
       profiles: {
         Row: {
           created_at: string
-          email: string
           id: string
           streak_tracker_id: number | null
         }
         Insert: {
           created_at?: string
-          email: string
           id: string
           streak_tracker_id?: number | null
         }
         Update: {
           created_at?: string
-          email?: string
           id?: string
           streak_tracker_id?: number | null
         }
