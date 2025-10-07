@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
-import { ChevronLeft, ChevronRight, Calendar, LogOut, BarChart3, Sparkles, ListTodo } from "lucide-react";
+import { ChevronLeft, ChevronRight, Calendar, LogOut, BarChart3, Sparkles, ListTodo, FileText } from "lucide-react";
 import { format, addDays, subDays, parseISO } from "date-fns";
 import { ko } from "date-fns/locale";
 import type { User, Session } from "@supabase/supabase-js";
@@ -328,6 +328,14 @@ const Dashboard = () => {
             >
               <ListTodo className="w-4 h-4" />
               나의 트래커
+            </Button>
+            <Button
+              onClick={() => navigate("/reports")}
+              variant="outline"
+              className="flex items-center gap-2"
+            >
+              <FileText className="w-4 h-4" />
+              리포트
             </Button>
             <Button
               onClick={() => navigate("/analytics")}
