@@ -65,7 +65,7 @@ export const generateWeeklyReport = async (
 
   if (!logs || logs.length === 0) {
     return {
-      weekLabel: format(weekStart, "yyyy년 M월 Do 주", { locale: ko }),
+      weekLabel: format(weekStart, "yyyy년 M월 wo주", { locale: ko }),
       summary: {
         streakHabit: null,
         avgMood: null,
@@ -228,7 +228,7 @@ export const generateWeeklyReport = async (
   }
 
   return {
-    weekLabel: format(weekStart, "yyyy년 M월 Do 주", { locale: ko }),
+    weekLabel: format(weekStart, "yyyy년 M월 wo주", { locale: ko }),
     summary: {
       streakHabit: streakTracker
         ? {
