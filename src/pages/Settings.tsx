@@ -75,15 +75,13 @@ const Settings = () => {
   const toggleIntegration = async (serviceName: string, isActive: boolean) => {
     if (!user) return;
 
-    // For now, just update the database. Actual OAuth flow would be implemented later
+    // Use secure function that handles token encryption
     const { error } = await supabase
-      .from("service_integrations")
-      .upsert({
-        user_id: user.id,
-        service_name: serviceName,
-        is_active: isActive
-      }, {
-        onConflict: "user_id,service_name"
+      .rpc("insert_service_integration", {
+        p_user_id: user.id,
+        p_service_name: serviceName,
+        p_is_active: isActive,
+        p_access_token: null // OAuth tokens will be added when OAuth flow is implemented
       });
 
     if (error) {

@@ -256,6 +256,7 @@ export type Database = {
       service_integrations: {
         Row: {
           access_token: string | null
+          access_token_encrypted: string | null
           created_at: string
           id: number
           is_active: boolean
@@ -265,6 +266,7 @@ export type Database = {
         }
         Insert: {
           access_token?: string | null
+          access_token_encrypted?: string | null
           created_at?: string
           id?: never
           is_active?: boolean
@@ -274,6 +276,7 @@ export type Database = {
         }
         Update: {
           access_token?: string | null
+          access_token_encrypted?: string | null
           created_at?: string
           id?: never
           is_active?: boolean
@@ -416,7 +419,36 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      service_integrations_decrypted: {
+        Row: {
+          access_token: string | null
+          created_at: string | null
+          id: number | null
+          is_active: boolean | null
+          service_name: string | null
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          access_token?: never
+          created_at?: string | null
+          id?: number | null
+          is_active?: boolean | null
+          service_name?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          access_token?: never
+          created_at?: string | null
+          id?: number | null
+          is_active?: boolean | null
+          service_name?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       has_role: {
@@ -425,6 +457,22 @@ export type Database = {
           _user_id: string
         }
         Returns: boolean
+      }
+      insert_service_integration: {
+        Args: {
+          p_access_token?: string
+          p_is_active: boolean
+          p_service_name: string
+          p_user_id: string
+        }
+        Returns: {
+          created_at: string
+          id: number
+          is_active: boolean
+          service_name: string
+          updated_at: string
+          user_id: string
+        }[]
       }
     }
     Enums: {
