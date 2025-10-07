@@ -21,7 +21,7 @@ const Auth = () => {
         data: { session },
       } = await supabase.auth.getSession();
       if (session) {
-        navigate("/dashboard");
+        navigate("/today");
       }
     };
     checkUser();
@@ -39,18 +39,18 @@ const Auth = () => {
         });
         if (error) throw error;
         toast.success("로그인 성공!");
-        navigate("/dashboard");
+        navigate("/today");
       } else {
         const { error } = await supabase.auth.signUp({
           email,
           password,
           options: {
-            emailRedirectTo: `${window.location.origin}/dashboard`,
+            emailRedirectTo: `${window.location.origin}/today`,
           },
         });
         if (error) throw error;
         toast.success("회원가입 성공! 자동으로 로그인됩니다.");
-        navigate("/dashboard");
+        navigate("/today");
       }
     } catch (error: any) {
       toast.error(error.message || "오류가 발생했습니다.");

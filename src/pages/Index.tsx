@@ -13,7 +13,7 @@ const Index = () => {
         data: { session },
       } = await supabase.auth.getSession();
       if (session) {
-        navigate("/dashboard");
+        navigate("/today");
       }
     };
     checkUser();
