@@ -6,14 +6,34 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { Settings as SettingsIcon, Download, Link2, LogOut, Sparkles, CalendarIcon, ListTodo, Store, FileText, BarChart3, Target } from "lucide-react";
+import { Settings as SettingsIcon, Download, Link2, LogOut, Sparkles, CalendarIcon, ListTodo, Store, FileText, BarChart3, Target, MessageSquare, Send } from "lucide-react";
 import { format } from "date-fns";
 import type { User } from "@supabase/supabase-js";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 interface ServiceIntegration {
   service_name: string;
   is_active: boolean;
+}
+
+interface SupportTicket {
+  id: number;
+  subject: string;
+  message: string;
+  status: string;
+  priority: string;
+  admin_response: string | null;
+  created_at: string;
 }
 
 const Settings = () => {
@@ -25,6 +45,11 @@ const Settings = () => {
     "Google Fit": false
   });
   const [exporting, setExporting] = useState(false);
+  const [tickets, setTickets] = useState<SupportTicket[]>([]);
+  const [subject, setSubject] = useState("");
+  const [message, setMessage] = useState("");
+  const [priority, setPriority] = useState("medium");
+  const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -47,6 +72,7 @@ const Settings = () => {
   useEffect(() => {
     if (user) {
       loadIntegrations();
+      loadTickets();
     }
   }, [user]);
 
@@ -70,6 +96,74 @@ const Settings = () => {
       });
       setIntegrations(integrationsMap);
     }
+  };
+
+  const loadTickets = async () => {
+    if (!user) return;
+
+    const { data, error } = await supabase
+      .from("support_tickets")
+      .select("*")
+      .eq("user_id", user.id)
+      .order("created_at", { ascending: false });
+
+    if (error) {
+      console.error("Error loading tickets:", error);
+      return;
+    }
+
+    setTickets(data || []);
+  };
+
+  const handleSubmitTicket = async () => {
+    if (!user || !subject || !message) {
+      toast.error("제목과 내용을 모두 입력해주세요");
+      return;
+    }
+
+    setSubmitting(true);
+
+    const { error } = await supabase
+      .from("support_tickets")
+      .insert({
+        user_id: user.id,
+        subject,
+        message,
+        priority,
+      });
+
+    if (error) {
+      toast.error("문의 전송 실패");
+      console.error(error);
+    } else {
+      toast.success("문의가 전송되었습니다. 빠른 시일 내에 답변 드리겠습니다.");
+      setSubject("");
+      setMessage("");
+      setPriority("medium");
+      loadTickets();
+    }
+
+    setSubmitting(false);
+  };
+
+  const getStatusBadge = (status: string) => {
+    const variants: Record<string, { label: string; variant: "default" | "secondary" | "outline" }> = {
+      open: { label: "대기중", variant: "outline" },
+      in_progress: { label: "처리중", variant: "secondary" },
+      resolved: { label: "해결됨", variant: "default" },
+      closed: { label: "종료", variant: "outline" },
+    };
+    return variants[status] || variants.open;
+  };
+
+  const getPriorityBadge = (priority: string) => {
+    const variants: Record<string, { label: string; class: string }> = {
+      low: { label: "낮음", class: "bg-gray-100 text-gray-800" },
+      medium: { label: "보통", class: "bg-blue-100 text-blue-800" },
+      high: { label: "높음", class: "bg-orange-100 text-orange-800" },
+      urgent: { label: "긴급", class: "bg-red-100 text-red-800" },
+    };
+    return variants[priority] || variants.medium;
   };
 
   const toggleIntegration = async (serviceName: string, isActive: boolean) => {
@@ -230,9 +324,10 @@ const Settings = () => {
         </div>
 
         <Tabs defaultValue="export" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-2">
+          <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="export">데이터 관리</TabsTrigger>
             <TabsTrigger value="integrations">외부 연동</TabsTrigger>
+            <TabsTrigger value="support">고객 지원</TabsTrigger>
           </TabsList>
 
           <TabsContent value="export" className="space-y-4">
@@ -292,6 +387,116 @@ const Settings = () => {
                 <p className="text-sm text-muted-foreground mt-4">
                   * 실제 OAuth 연동은 추후 업데이트될 예정입니다
                 </p>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="support" className="space-y-6">
+            <Card className="shadow-card">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <MessageSquare className="w-5 h-5 text-primary" />
+                  문의하기
+                </CardTitle>
+                <CardDescription>
+                  궁금하신 점이나 문제가 있으시면 언제든지 문의해주세요
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <Label>제목</Label>
+                  <Input
+                    placeholder="문의 제목을 입력하세요"
+                    value={subject}
+                    onChange={(e) => setSubject(e.target.value)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>우선순위</Label>
+                  <Select value={priority} onValueChange={setPriority}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="low">낮음</SelectItem>
+                      <SelectItem value="medium">보통</SelectItem>
+                      <SelectItem value="high">높음</SelectItem>
+                      <SelectItem value="urgent">긴급</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label>문의 내용</Label>
+                  <Textarea
+                    placeholder="문의 내용을 자세히 작성해주세요"
+                    value={message}
+                    onChange={(e) => setMessage(e.target.value)}
+                    rows={6}
+                  />
+                </div>
+                <Button
+                  onClick={handleSubmitTicket}
+                  disabled={submitting}
+                  className="w-full bg-gradient-to-r from-primary to-accent"
+                >
+                  <Send className="w-4 h-4 mr-2" />
+                  {submitting ? "전송 중..." : "문의 전송"}
+                </Button>
+              </CardContent>
+            </Card>
+
+            <Card className="shadow-card">
+              <CardHeader>
+                <CardTitle>나의 문의 내역</CardTitle>
+                <CardDescription>
+                  이전에 작성한 문의 내역과 답변을 확인할 수 있습니다
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {tickets.length === 0 ? (
+                  <p className="text-center text-muted-foreground py-8">
+                    아직 작성한 문의가 없습니다
+                  </p>
+                ) : (
+                  tickets.map((ticket) => (
+                    <Card key={ticket.id} className="border">
+                      <CardHeader>
+                        <div className="flex items-start justify-between">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2 mb-2">
+                              <CardTitle className="text-base">{ticket.subject}</CardTitle>
+                              <Badge variant={getStatusBadge(ticket.status).variant}>
+                                {getStatusBadge(ticket.status).label}
+                              </Badge>
+                              <Badge className={getPriorityBadge(ticket.priority).class}>
+                                {getPriorityBadge(ticket.priority).label}
+                              </Badge>
+                            </div>
+                            <p className="text-xs text-muted-foreground">
+                              {new Date(ticket.created_at).toLocaleString("ko-KR")}
+                            </p>
+                          </div>
+                        </div>
+                      </CardHeader>
+                      <CardContent className="space-y-4">
+                        <div>
+                          <p className="text-sm font-medium mb-1">문의 내용:</p>
+                          <p className="text-sm text-muted-foreground whitespace-pre-line">
+                            {ticket.message}
+                          </p>
+                        </div>
+                        {ticket.admin_response && (
+                          <div className="border-t pt-4">
+                            <p className="text-sm font-medium mb-1 text-primary">관리자 답변:</p>
+                            <p className="text-sm text-muted-foreground whitespace-pre-line">
+                              {ticket.admin_response}
+                            </p>
+                          </div>
+                        )}
+                      </CardContent>
+                    </Card>
+                  ))
+                )}
               </CardContent>
             </Card>
           </TabsContent>

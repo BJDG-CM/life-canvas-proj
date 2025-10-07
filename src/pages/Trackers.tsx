@@ -192,7 +192,7 @@ const Trackers = () => {
     setSharing(true);
 
     try {
-      // Create template
+      // Create template with pending approval status
       const { data: template, error: templateError } = await supabase
         .from("tracker_templates")
         .insert([{
@@ -200,6 +200,7 @@ const Trackers = () => {
           name: templateName.trim(),
           description: templateDescription.trim(),
           category: templateCategory,
+          approval_status: 'pending', // 승인 대기 상태로 설정
         }])
         .select()
         .single();
@@ -231,7 +232,7 @@ const Trackers = () => {
         return;
       }
 
-      toast.success("템플릿이 공유되었습니다!");
+      toast.success("템플릿이 제출되었습니다! 관리자 승인 후 마켓에 공개됩니다.");
       setShareDialogOpen(false);
       setSelectedTrackers([]);
       setTemplateName("");

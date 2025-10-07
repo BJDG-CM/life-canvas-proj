@@ -18,6 +18,8 @@ interface Template {
   category: string;
   clone_count: number;
   created_at: string;
+  approval_status: 'pending' | 'approved' | 'rejected';
+  rejection_reason: string | null;
 }
 
 const CATEGORIES = ["전체", "건강", "생산성", "취미", "학습", "기타"];
@@ -31,6 +33,7 @@ const Market = () => {
   const [selectedCategory, setSelectedCategory] = useState("전체");
   const [sortBy, setSortBy] = useState<"popular" | "recent">("popular");
   const [loading, setLoading] = useState(false);
+  const [showMyTemplates, setShowMyTemplates] = useState(false);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -60,7 +63,7 @@ const Market = () => {
 
   useEffect(() => {
     filterTemplates();
-  }, [templates, searchQuery, selectedCategory]);
+  }, [templates, searchQuery, selectedCategory, showMyTemplates]);
 
   const loadTemplates = async () => {
     setLoading(true);
@@ -86,6 +89,14 @@ const Market = () => {
   const filterTemplates = () => {
     let filtered = templates;
 
+    // Filter by user's templates if showMyTemplates is true
+    if (showMyTemplates && user) {
+      filtered = filtered.filter((t) => t.creator_id === user.id);
+    } else {
+      // Only show approved templates for others
+      filtered = filtered.filter((t) => t.approval_status === 'approved');
+    }
+
     if (selectedCategory !== "전체") {
       filtered = filtered.filter((t) => t.category === selectedCategory);
     }
@@ -100,6 +111,19 @@ const Market = () => {
     }
 
     setFilteredTemplates(filtered);
+  };
+
+  const getApprovalStatusBadge = (status: string) => {
+    switch (status) {
+      case 'approved':
+        return <Badge className="bg-green-500">승인됨</Badge>;
+      case 'pending':
+        return <Badge className="bg-yellow-500">승인 대기</Badge>;
+      case 'rejected':
+        return <Badge className="bg-red-500">반려됨</Badge>;
+      default:
+        return null;
+    }
   };
 
   const getCategoryColor = (category: string) => {
@@ -138,6 +162,14 @@ const Market = () => {
       <main className="container mx-auto px-4 py-8 max-w-7xl">
         {/* Search and Filters */}
         <div className="mb-8 space-y-4">
+          <div className="flex items-center gap-4 mb-4">
+            <Button
+              variant={showMyTemplates ? "default" : "outline"}
+              onClick={() => setShowMyTemplates(!showMyTemplates)}
+            >
+              {showMyTemplates ? "전체 템플릿 보기" : "나의 템플릿 보기"}
+            </Button>
+          </div>
           <div className="flex flex-col md:flex-row gap-4">
             <div className="flex-1 relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
@@ -209,9 +241,12 @@ const Market = () => {
               >
                 <CardHeader>
                   <div className="flex items-start justify-between mb-2">
-                    <Badge className={getCategoryColor(template.category)}>
-                      {template.category}
-                    </Badge>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <Badge className={getCategoryColor(template.category)}>
+                        {template.category}
+                      </Badge>
+                      {showMyTemplates && getApprovalStatusBadge(template.approval_status)}
+                    </div>
                     <div className="flex items-center gap-1 text-sm text-muted-foreground">
                       <Users className="w-4 h-4" />
                       <span>{template.clone_count}</span>
@@ -223,6 +258,12 @@ const Market = () => {
                   <p className="text-sm text-muted-foreground line-clamp-3">
                     {template.description}
                   </p>
+                  {showMyTemplates && template.approval_status === 'rejected' && template.rejection_reason && (
+                    <div className="mt-4 p-3 bg-red-50 dark:bg-red-900/20 rounded-lg border border-red-200 dark:border-red-800">
+                      <p className="text-xs font-semibold text-red-800 dark:text-red-200 mb-1">반려 사유:</p>
+                      <p className="text-xs text-red-700 dark:text-red-300">{template.rejection_reason}</p>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             ))}
