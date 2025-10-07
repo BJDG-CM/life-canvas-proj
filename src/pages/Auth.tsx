@@ -69,7 +69,7 @@ const Auth = () => {
               라이프 캔버스
             </CardTitle>
           </div>
-          <CardDescription className="text-base">인생의 한 조각을 모아 당신만의 책으로</CardDescription>
+          <CardDescription className="text-base">인생의 한 페이지를 모아 당신만의 책으로</CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
