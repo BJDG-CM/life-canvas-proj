@@ -15,6 +15,7 @@ import TemplateDetail from "./pages/TemplateDetail";
 import Goals from "./pages/Goals";
 import Settings from "./pages/Settings";
 import Community from "./pages/Community";
+import Admin from "./pages/Admin";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -38,6 +39,7 @@ const App = () => (
           <Route path="/analytics" element={<Analytics />} />
           <Route path="/community" element={<Community />} />
           <Route path="/settings" element={<Settings />} />
+          <Route path="/admin" element={<Admin />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
