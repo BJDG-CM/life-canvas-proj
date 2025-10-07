@@ -9,7 +9,9 @@ const Index = () => {
 
   useEffect(() => {
     const checkUser = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
       if (session) {
         navigate("/dashboard");
       }
@@ -26,10 +28,8 @@ const Index = () => {
         <h1 className="text-5xl md:text-6xl font-bold mb-4 bg-gradient-to-r from-primary via-accent to-primary bg-clip-text text-transparent animate-in">
           라이프 캔버스
         </h1>
-        <p className="text-xl md:text-2xl text-muted-foreground mb-8">
-          당신의 일상이 데이터가 되어, 인생의 패턴을 보여줍니다
-        </p>
-        
+        <p className="text-xl md:text-2xl text-muted-foreground mb-8">당신만의 인생 일기장</p>
+
         <div className="flex flex-wrap justify-center gap-6 mb-12">
           <div className="flex items-center gap-2 text-muted-foreground">
             <Calendar className="w-5 h-5 text-primary" />
