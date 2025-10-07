@@ -9,8 +9,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { Shield, Plus, Trash2, LogOut, Sparkles, Users, Target, TrendingUp } from "lucide-react";
+import { Shield, Plus, Trash2, LogOut, Users, Target, TrendingUp, Image as ImageIcon, FileText } from "lucide-react";
 import type { User } from "@supabase/supabase-js";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
 interface Challenge {
   id: number;
@@ -30,6 +31,19 @@ interface CommunityInsight {
   published_at: string;
 }
 
+interface Profile {
+  id: string;
+  created_at: string;
+}
+
+interface DailyLog {
+  id: number;
+  user_id: string;
+  log_date: string;
+  photo_url: string | null;
+  created_at: string;
+}
+
 const Admin = () => {
   const navigate = useNavigate();
   const [user, setUser] = useState<User | null>(null);
@@ -37,6 +51,8 @@ const Admin = () => {
   const [loading, setLoading] = useState(true);
   const [challenges, setChallenges] = useState<Challenge[]>([]);
   const [insights, setInsights] = useState<CommunityInsight[]>([]);
+  const [profiles, setProfiles] = useState<Profile[]>([]);
+  const [photos, setPhotos] = useState<DailyLog[]>([]);
 
   // Challenge form
   const [isAddChallengeOpen, setIsAddChallengeOpen] = useState(false);
@@ -86,6 +102,8 @@ const Admin = () => {
       setLoading(false);
       loadChallenges();
       loadInsights();
+      loadProfiles();
+      loadPhotos();
     };
 
     checkAuth();
@@ -205,6 +223,36 @@ const Admin = () => {
     loadInsights();
   };
 
+  const loadProfiles = async () => {
+    const { data, error } = await supabase
+      .from("profiles")
+      .select("*")
+      .order("created_at", { ascending: false });
+
+    if (error) {
+      console.error("Error loading profiles:", error);
+      return;
+    }
+
+    setProfiles(data || []);
+  };
+
+  const loadPhotos = async () => {
+    const { data, error } = await supabase
+      .from("daily_logs")
+      .select("id, user_id, log_date, photo_url, created_at")
+      .not("photo_url", "is", null)
+      .order("created_at", { ascending: false })
+      .limit(100);
+
+    if (error) {
+      console.error("Error loading photos:", error);
+      return;
+    }
+
+    setPhotos(data || []);
+  };
+
   const handleLogout = async () => {
     await supabase.auth.signOut();
     navigate("/auth");
@@ -250,9 +298,11 @@ const Admin = () => {
         </div>
 
         <Tabs defaultValue="challenges" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="challenges">챌린지 관리</TabsTrigger>
-            <TabsTrigger value="insights">인사이트 관리</TabsTrigger>
+          <TabsList className="grid w-full grid-cols-4">
+            <TabsTrigger value="challenges">챌린지</TabsTrigger>
+            <TabsTrigger value="insights">인사이트</TabsTrigger>
+            <TabsTrigger value="members">멤버</TabsTrigger>
+            <TabsTrigger value="files">파일</TabsTrigger>
           </TabsList>
 
           <TabsContent value="challenges" className="space-y-4">
@@ -437,6 +487,82 @@ const Admin = () => {
                 </CardContent>
               </Card>
             )}
+          </TabsContent>
+
+          <TabsContent value="members" className="space-y-4">
+            <div>
+              <h3 className="text-xl font-semibold">회원 관리</h3>
+              <p className="text-sm text-muted-foreground">등록된 회원 정보를 확인하세요</p>
+            </div>
+
+            <Card className="shadow-card">
+              <CardContent className="pt-6">
+                <div className="flex items-center gap-2 mb-4">
+                  <Users className="w-5 h-5 text-primary" />
+                  <p className="font-semibold">총 회원 수: {profiles.length}명</p>
+                </div>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>사용자 ID</TableHead>
+                      <TableHead>가입일</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {profiles.map((profile) => (
+                      <TableRow key={profile.id}>
+                        <TableCell className="font-mono text-xs">{profile.id}</TableCell>
+                        <TableCell>{new Date(profile.created_at).toLocaleDateString("ko-KR")}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+                {profiles.length === 0 && (
+                  <div className="py-8 text-center text-muted-foreground">
+                    등록된 회원이 없습니다
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="files" className="space-y-4">
+            <div>
+              <h3 className="text-xl font-semibold">업로드된 파일</h3>
+              <p className="text-sm text-muted-foreground">사용자들이 업로드한 사진을 확인하세요</p>
+            </div>
+
+            <Card className="shadow-card">
+              <CardContent className="pt-6">
+                <div className="flex items-center gap-2 mb-4">
+                  <ImageIcon className="w-5 h-5 text-primary" />
+                  <p className="font-semibold">총 사진 수: {photos.length}개</p>
+                </div>
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                  {photos.map((photo) => (
+                    <div key={photo.id} className="space-y-2">
+                      <div className="aspect-square rounded-lg overflow-hidden bg-muted">
+                        <img
+                          src={photo.photo_url || ""}
+                          alt={`Photo from ${photo.log_date}`}
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+                      <div className="text-xs text-muted-foreground space-y-1">
+                        <p className="truncate">날짜: {photo.log_date}</p>
+                        <p className="truncate font-mono">사용자: {photo.user_id.slice(0, 8)}...</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                {photos.length === 0 && (
+                  <div className="py-12 text-center">
+                    <FileText className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
+                    <p className="text-lg text-muted-foreground">업로드된 사진이 없습니다</p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
           </TabsContent>
         </Tabs>
       </main>
