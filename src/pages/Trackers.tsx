@@ -5,10 +5,12 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { ArrowLeft, Star, Plus, Trash2 } from "lucide-react";
+import { ArrowLeft, Star, Plus, Trash2, Share2 } from "lucide-react";
 import type { User } from "@supabase/supabase-js";
 
 interface Tracker {
@@ -28,9 +30,15 @@ const Trackers = () => {
   const [trackers, setTrackers] = useState<Tracker[]>([]);
   const [streakTrackerId, setStreakTrackerId] = useState<number | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [shareDialogOpen, setShareDialogOpen] = useState(false);
   const [newTrackerName, setNewTrackerName] = useState("");
   const [newTrackerType, setNewTrackerType] = useState<"boolean" | "number" | "scale">("boolean");
   const [loading, setLoading] = useState(false);
+  const [selectedTrackers, setSelectedTrackers] = useState<number[]>([]);
+  const [templateName, setTemplateName] = useState("");
+  const [templateDescription, setTemplateDescription] = useState("");
+  const [templateCategory, setTemplateCategory] = useState("기타");
+  const [sharing, setSharing] = useState(false);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -170,6 +178,81 @@ const Trackers = () => {
     }
   };
 
+  const handleShareTemplate = async () => {
+    if (!user || selectedTrackers.length === 0) {
+      toast.error("공유할 트래커를 선택해주세요");
+      return;
+    }
+
+    if (!templateName.trim() || !templateDescription.trim()) {
+      toast.error("템플릿 이름과 설명을 입력해주세요");
+      return;
+    }
+
+    setSharing(true);
+
+    try {
+      // Create template
+      const { data: template, error: templateError } = await supabase
+        .from("tracker_templates")
+        .insert([{
+          creator_id: user.id,
+          name: templateName.trim(),
+          description: templateDescription.trim(),
+          category: templateCategory,
+        }])
+        .select()
+        .single();
+
+      if (templateError) {
+        toast.error("템플릿 생성 실패: " + templateError.message);
+        setSharing(false);
+        return;
+      }
+
+      // Create template items
+      const selectedTrackerData = trackers.filter((t) => 
+        selectedTrackers.includes(t.id)
+      );
+      
+      const itemsToInsert = selectedTrackerData.map((tracker) => ({
+        template_id: template.id,
+        item_name: tracker.name,
+        item_type: tracker.type,
+      }));
+
+      const { error: itemsError } = await supabase
+        .from("template_items")
+        .insert(itemsToInsert);
+
+      if (itemsError) {
+        toast.error("템플릿 항목 생성 실패: " + itemsError.message);
+        setSharing(false);
+        return;
+      }
+
+      toast.success("템플릿이 공유되었습니다!");
+      setShareDialogOpen(false);
+      setSelectedTrackers([]);
+      setTemplateName("");
+      setTemplateDescription("");
+      setTemplateCategory("기타");
+    } catch (error) {
+      console.error("Error sharing template:", error);
+      toast.error("템플릿 공유 중 오류가 발생했습니다");
+    }
+
+    setSharing(false);
+  };
+
+  const toggleTrackerSelection = (trackerId: number) => {
+    setSelectedTrackers((prev) =>
+      prev.includes(trackerId)
+        ? prev.filter((id) => id !== trackerId)
+        : [...prev, trackerId]
+    );
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-primary/5 via-background to-accent/5">
       <header className="border-b bg-card/50 backdrop-blur-sm sticky top-0 z-10 shadow-sm">
@@ -242,48 +325,136 @@ const Trackers = () => {
             </CardContent>
           </Card>
         ) : (
-          <div className="space-y-4">
-            <p className="text-sm text-muted-foreground mb-4">
-              ⭐ 별표를 클릭하여 핵심 습관으로 설정하면 대시보드에서 스트릭을 확인할 수 있습니다.
-            </p>
-            {trackers.map((tracker) => (
-              <Card key={tracker.id} className="shadow-card">
-                <CardHeader>
-                  <CardTitle className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <button
-                        onClick={() => handleSetStreakTracker(tracker.id)}
-                        className={`transition-all ${
-                          streakTrackerId === tracker.id
-                            ? "text-yellow-500 scale-110"
-                            : "text-gray-300 hover:text-yellow-400"
-                        }`}
-                      >
-                        <Star
-                          className="w-6 h-6"
-                          fill={streakTrackerId === tracker.id ? "currentColor" : "none"}
-                        />
-                      </button>
-                      <div>
-                        <p className="text-lg">{tracker.name}</p>
-                        <p className="text-sm text-muted-foreground font-normal">
-                          타입: {getTypeLabel(tracker.type)}
-                        </p>
+          <>
+            <div className="space-y-4">
+              <p className="text-sm text-muted-foreground mb-4">
+                ⭐ 별표를 클릭하여 핵심 습관으로 설정하면 대시보드에서 스트릭을 확인할 수 있습니다.
+              </p>
+              {trackers.map((tracker) => (
+                <Card key={tracker.id} className="shadow-card">
+                  <CardHeader>
+                    <CardTitle className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <button
+                          onClick={() => handleSetStreakTracker(tracker.id)}
+                          className={`transition-all ${
+                            streakTrackerId === tracker.id
+                              ? "text-yellow-500 scale-110"
+                              : "text-gray-300 hover:text-yellow-400"
+                          }`}
+                        >
+                          <Star
+                            className="w-6 h-6"
+                            fill={streakTrackerId === tracker.id ? "currentColor" : "none"}
+                          />
+                        </button>
+                        <div>
+                          <p className="text-lg">{tracker.name}</p>
+                          <p className="text-sm text-muted-foreground font-normal">
+                            타입: {getTypeLabel(tracker.type)}
+                          </p>
+                        </div>
                       </div>
+                      <Button
+                        onClick={() => handleDeleteTracker(tracker.id)}
+                        variant="ghost"
+                        size="icon"
+                        className="text-destructive hover:text-destructive"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    </CardTitle>
+                  </CardHeader>
+                </Card>
+              ))}
+            </div>
+
+            {/* Share Template Section */}
+            <div className="mt-8 pt-8 border-t">
+              <Dialog open={shareDialogOpen} onOpenChange={setShareDialogOpen}>
+                <DialogTrigger asChild>
+                  <Button variant="outline" className="w-full flex items-center gap-2 py-6">
+                    <Share2 className="w-5 h-5" />
+                    내 트래커 조합을 템플릿으로 공유하기
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+                  <DialogHeader>
+                    <DialogTitle>템플릿 공유하기</DialogTitle>
+                  </DialogHeader>
+                  <div className="space-y-4 py-4">
+                    <div className="space-y-2">
+                      <Label>공유할 트래커 선택</Label>
+                      <div className="space-y-2 max-h-48 overflow-y-auto border rounded-md p-3">
+                        {trackers.map((tracker) => (
+                          <div key={tracker.id} className="flex items-center space-x-2">
+                            <Checkbox
+                              id={`tracker-${tracker.id}`}
+                              checked={selectedTrackers.includes(tracker.id)}
+                              onCheckedChange={() => toggleTrackerSelection(tracker.id)}
+                            />
+                            <label
+                              htmlFor={`tracker-${tracker.id}`}
+                              className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
+                            >
+                              {tracker.name} ({getTypeLabel(tracker.type)})
+                            </label>
+                          </div>
+                        ))}
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        선택된 트래커: {selectedTrackers.length}개
+                      </p>
                     </div>
-                    <Button
-                      onClick={() => handleDeleteTracker(tracker.id)}
-                      variant="ghost"
-                      size="icon"
-                      className="text-destructive hover:text-destructive"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
-                  </CardTitle>
-                </CardHeader>
-              </Card>
-            ))}
-          </div>
+                    
+                    <div className="space-y-2">
+                      <Label htmlFor="template-name">템플릿 이름 *</Label>
+                      <Input
+                        id="template-name"
+                        placeholder="예: 완벽한 아침을 위한 모닝 루틴"
+                        value={templateName}
+                        onChange={(e) => setTemplateName(e.target.value)}
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="template-desc">템플릿 설명 *</Label>
+                      <Textarea
+                        id="template-desc"
+                        placeholder="이 템플릿에 대해 설명해주세요..."
+                        value={templateDescription}
+                        onChange={(e) => setTemplateDescription(e.target.value)}
+                        rows={4}
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="template-category">카테고리</Label>
+                      <Select value={templateCategory} onValueChange={setTemplateCategory}>
+                        <SelectTrigger id="template-category" className="bg-background">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent className="bg-background z-50">
+                          <SelectItem value="건강">건강</SelectItem>
+                          <SelectItem value="생산성">생산성</SelectItem>
+                          <SelectItem value="취미">취미</SelectItem>
+                          <SelectItem value="학습">학습</SelectItem>
+                          <SelectItem value="기타">기타</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                  <Button 
+                    onClick={handleShareTemplate} 
+                    disabled={sharing || selectedTrackers.length === 0}
+                    className="w-full"
+                  >
+                    {sharing ? "공유 중..." : "공유하기"}
+                  </Button>
+                </DialogContent>
+              </Dialog>
+            </div>
+          </>
         )}
       </main>
     </div>

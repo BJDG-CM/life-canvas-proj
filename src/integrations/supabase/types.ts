@@ -126,6 +126,65 @@ export type Database = {
           },
         ]
       }
+      template_items: {
+        Row: {
+          id: number
+          item_name: string
+          item_type: string
+          template_id: number
+        }
+        Insert: {
+          id?: never
+          item_name: string
+          item_type: string
+          template_id: number
+        }
+        Update: {
+          id?: never
+          item_name?: string
+          item_type?: string
+          template_id?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "template_items_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "tracker_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tracker_templates: {
+        Row: {
+          category: string
+          clone_count: number
+          created_at: string
+          creator_id: string
+          description: string
+          id: number
+          name: string
+        }
+        Insert: {
+          category: string
+          clone_count?: number
+          created_at?: string
+          creator_id: string
+          description: string
+          id?: never
+          name: string
+        }
+        Update: {
+          category?: string
+          clone_count?: number
+          created_at?: string
+          creator_id?: string
+          description?: string
+          id?: never
+          name?: string
+        }
+        Relationships: []
+      }
       trackers: {
         Row: {
           created_at: string
