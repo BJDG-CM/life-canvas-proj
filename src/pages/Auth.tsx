@@ -17,7 +17,9 @@ const Auth = () => {
 
   useEffect(() => {
     const checkUser = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
       if (session) {
         navigate("/dashboard");
       }
@@ -67,9 +69,7 @@ const Auth = () => {
               라이프 캔버스
             </CardTitle>
           </div>
-          <CardDescription className="text-base">
-            당신의 일상이 데이터가 되어, 인생의 패턴을 보여줍니다
-          </CardDescription>
+          <CardDescription className="text-base">인생의 한 조각을 모아 당신만의 책으로</CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
@@ -103,12 +103,7 @@ const Auth = () => {
             >
               {loading ? "처리 중..." : isLogin ? "로그인" : "회원가입"}
             </Button>
-            <Button
-              type="button"
-              variant="ghost"
-              className="w-full"
-              onClick={() => setIsLogin(!isLogin)}
-            >
+            <Button type="button" variant="ghost" className="w-full" onClick={() => setIsLogin(!isLogin)}>
               {isLogin ? "계정이 없으신가요? 회원가입" : "이미 계정이 있으신가요? 로그인"}
             </Button>
           </form>
