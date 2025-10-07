@@ -413,36 +413,7 @@ export type Database = {
       }
     }
     Views: {
-      service_integrations_decrypted: {
-        Row: {
-          access_token: string | null
-          created_at: string | null
-          id: number | null
-          is_active: boolean | null
-          service_name: string | null
-          updated_at: string | null
-          user_id: string | null
-        }
-        Insert: {
-          access_token?: never
-          created_at?: string | null
-          id?: number | null
-          is_active?: boolean | null
-          service_name?: string | null
-          updated_at?: string | null
-          user_id?: string | null
-        }
-        Update: {
-          access_token?: never
-          created_at?: string | null
-          id?: number | null
-          is_active?: boolean | null
-          service_name?: string | null
-          updated_at?: string | null
-          user_id?: string | null
-        }
-        Relationships: []
-      }
+      [_ in never]: never
     }
     Functions: {
       has_role: {
