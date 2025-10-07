@@ -14,6 +14,45 @@ export type Database = {
   }
   public: {
     Tables: {
+      custom_logs: {
+        Row: {
+          created_at: string
+          id: number
+          log_id: number
+          tracker_id: number
+          value: string
+        }
+        Insert: {
+          created_at?: string
+          id?: never
+          log_id: number
+          tracker_id: number
+          value: string
+        }
+        Update: {
+          created_at?: string
+          id?: never
+          log_id?: number
+          tracker_id?: number
+          value?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "custom_logs_log_id_fkey"
+            columns: ["log_id"]
+            isOneToOne: false
+            referencedRelation: "daily_logs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "custom_logs_tracker_id_fkey"
+            columns: ["tracker_id"]
+            isOneToOne: false
+            referencedRelation: "trackers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       daily_logs: {
         Row: {
           coffee_cups: number | null
@@ -63,16 +102,51 @@ export type Database = {
           created_at: string
           email: string
           id: string
+          streak_tracker_id: number | null
         }
         Insert: {
           created_at?: string
           email: string
           id: string
+          streak_tracker_id?: number | null
         }
         Update: {
           created_at?: string
           email?: string
           id?: string
+          streak_tracker_id?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "profiles_streak_tracker_id_fkey"
+            columns: ["streak_tracker_id"]
+            isOneToOne: false
+            referencedRelation: "trackers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      trackers: {
+        Row: {
+          created_at: string
+          id: number
+          name: string
+          type: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: never
+          name: string
+          type: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: never
+          name?: string
+          type?: string
+          user_id?: string
         }
         Relationships: []
       }
