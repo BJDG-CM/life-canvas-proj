@@ -255,7 +255,6 @@ export type Database = {
       }
       service_integrations: {
         Row: {
-          access_token: string | null
           access_token_encrypted: string | null
           created_at: string
           id: number
@@ -265,7 +264,6 @@ export type Database = {
           user_id: string
         }
         Insert: {
-          access_token?: string | null
           access_token_encrypted?: string | null
           created_at?: string
           id?: never
@@ -275,7 +273,6 @@ export type Database = {
           user_id: string
         }
         Update: {
-          access_token?: string | null
           access_token_encrypted?: string | null
           created_at?: string
           id?: never

@@ -7,6 +7,19 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
 import { Sparkles } from "lucide-react";
+import { z } from "zod";
+
+const authSchema = z.object({
+  email: z
+    .string()
+    .trim()
+    .email({ message: "올바른 이메일 주소를 입력해주세요." })
+    .max(255, { message: "이메일은 255자 이하여야 합니다." }),
+  password: z
+    .string()
+    .min(6, { message: "비밀번호는 최소 6자 이상이어야 합니다." })
+    .max(72, { message: "비밀번호는 72자 이하여야 합니다." }),
+});
 
 const Auth = () => {
   const [isLogin, setIsLogin] = useState(true);
@@ -32,18 +45,29 @@ const Auth = () => {
     setLoading(true);
 
     try {
+      // Validate input
+      const validation = authSchema.safeParse({ email, password });
+      if (!validation.success) {
+        const firstError = validation.error.errors[0];
+        toast.error(firstError.message);
+        setLoading(false);
+        return;
+      }
+
+      const { email: validEmail, password: validPassword } = validation.data;
+
       if (isLogin) {
         const { error } = await supabase.auth.signInWithPassword({
-          email,
-          password,
+          email: validEmail,
+          password: validPassword,
         });
         if (error) throw error;
         toast.success("로그인 성공!");
         navigate("/today");
       } else {
         const { error } = await supabase.auth.signUp({
-          email,
-          password,
+          email: validEmail,
+          password: validPassword,
           options: {
             emailRedirectTo: `${window.location.origin}/today`,
           },
