@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
-import { LogOut, BarChart3, Sparkles, ListTodo, FileText, Store, CloudSun, TrendingUp, Calendar as CalendarIcon } from "lucide-react";
+import { LogOut, BarChart3, Sparkles, ListTodo, FileText, Store, CloudSun, TrendingUp, Calendar as CalendarIcon, Target, Settings as SettingsIcon, Users, Image as ImageIcon } from "lucide-react";
 import { format, subDays, subYears } from "date-fns";
 import { ko } from "date-fns/locale";
 import type { User, Session } from "@supabase/supabase-js";
@@ -76,6 +76,8 @@ const Today = () => {
   const [lastYearData, setLastYearData] = useState<DailyLog | null>(null);
   const [weather, setWeather] = useState<WeatherData | null>(null);
   const [insights, setInsights] = useState<string[]>([]);
+  const [photoFile, setPhotoFile] = useState<File | null>(null);
+  const [photoUrl, setPhotoUrl] = useState<string | null>(null);
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
@@ -194,6 +196,7 @@ const Today = () => {
       setCoffeeCups(data.coffee_cups);
       setMemo(data.memo || "");
       setCurrentLogId(data.id);
+      setPhotoUrl(data.photo_url);
       await loadCustomLogs(data.id);
     }
   };
@@ -314,6 +317,25 @@ const Today = () => {
     setLoading(true);
     const dateStr = format(today, "yyyy-MM-dd");
 
+    let uploadedPhotoUrl = photoUrl;
+
+    // Upload photo if selected
+    if (photoFile) {
+      const filePath = `${user.id}/${dateStr}-${Date.now()}.jpg`;
+      const { error: uploadError } = await supabase.storage
+        .from('daily-photos')
+        .upload(filePath, photoFile);
+
+      if (uploadError) {
+        toast.error("사진 업로드 실패: " + uploadError.message);
+      } else {
+        const { data: urlData } = supabase.storage
+          .from('daily-photos')
+          .getPublicUrl(filePath);
+        uploadedPhotoUrl = urlData.publicUrl;
+      }
+    }
+
     const logData = {
       user_id: user.id,
       log_date: dateStr,
@@ -322,6 +344,7 @@ const Today = () => {
       exercised,
       coffee_cups: coffeeCups,
       memo,
+      photo_url: uploadedPhotoUrl,
     };
 
     const { data, error } = await supabase
@@ -721,7 +744,7 @@ const Today = () => {
           <CardHeader>
             <CardTitle className="text-lg">오늘의 한 줄</CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="space-y-4">
             <Textarea
               placeholder="오늘 하루는 어땠나요?"
               value={memo}
@@ -729,6 +752,25 @@ const Today = () => {
               rows={4}
               className="resize-none"
             />
+            <div>
+              <Label className="flex items-center gap-2 mb-2">
+                <ImageIcon className="w-4 h-4" />
+                오늘의 사진 (선택사항)
+              </Label>
+              <Input
+                type="file"
+                accept="image/*"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) setPhotoFile(file);
+                }}
+              />
+              {(photoUrl || photoFile) && (
+                <p className="text-sm text-muted-foreground mt-2">
+                  {photoFile ? "새 사진이 선택되었습니다" : "사진이 저장되어 있습니다"}
+                </p>
+              )}
+            </div>
           </CardContent>
         </Card>
 

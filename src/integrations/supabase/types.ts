@@ -14,6 +14,92 @@ export type Database = {
   }
   public: {
     Tables: {
+      challenge_participants: {
+        Row: {
+          challenge_id: number
+          id: number
+          joined_at: string
+          user_id: string
+        }
+        Insert: {
+          challenge_id: number
+          id?: never
+          joined_at?: string
+          user_id: string
+        }
+        Update: {
+          challenge_id?: number
+          id?: never
+          joined_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "challenge_participants_challenge_id_fkey"
+            columns: ["challenge_id"]
+            isOneToOne: false
+            referencedRelation: "challenges"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      challenges: {
+        Row: {
+          created_at: string
+          description: string
+          frequency: string
+          id: number
+          is_active: boolean
+          name: string
+          target_value: number
+          tracker_type: string
+        }
+        Insert: {
+          created_at?: string
+          description: string
+          frequency?: string
+          id?: never
+          is_active?: boolean
+          name: string
+          target_value: number
+          tracker_type: string
+        }
+        Update: {
+          created_at?: string
+          description?: string
+          frequency?: string
+          id?: never
+          is_active?: boolean
+          name?: string
+          target_value?: number
+          tracker_type?: string
+        }
+        Relationships: []
+      }
+      community_insights: {
+        Row: {
+          content: string
+          id: number
+          insight_data: Json
+          published_at: string
+          title: string
+        }
+        Insert: {
+          content: string
+          id?: never
+          insight_data: Json
+          published_at?: string
+          title: string
+        }
+        Update: {
+          content?: string
+          id?: never
+          insight_data?: Json
+          published_at?: string
+          title?: string
+        }
+        Relationships: []
+      }
       custom_logs: {
         Row: {
           created_at: string
@@ -62,6 +148,7 @@ export type Database = {
           log_date: string
           memo: string | null
           mood_score: number | null
+          photo_url: string | null
           sleep_hours: number | null
           user_id: string
         }
@@ -73,6 +160,7 @@ export type Database = {
           log_date: string
           memo?: string | null
           mood_score?: number | null
+          photo_url?: string | null
           sleep_hours?: number | null
           user_id: string
         }
@@ -84,6 +172,7 @@ export type Database = {
           log_date?: string
           memo?: string | null
           mood_score?: number | null
+          photo_url?: string | null
           sleep_hours?: number | null
           user_id?: string
         }
@@ -93,6 +182,44 @@ export type Database = {
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      goals: {
+        Row: {
+          created_at: string
+          id: number
+          is_active: boolean
+          linked_tracker_id: number | null
+          name: string
+          target_value: number
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: never
+          is_active?: boolean
+          linked_tracker_id?: number | null
+          name: string
+          target_value: number
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: never
+          is_active?: boolean
+          linked_tracker_id?: number | null
+          name?: string
+          target_value?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "goals_linked_tracker_id_fkey"
+            columns: ["linked_tracker_id"]
+            isOneToOne: false
+            referencedRelation: "trackers"
             referencedColumns: ["id"]
           },
         ]
@@ -125,6 +252,36 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      service_integrations: {
+        Row: {
+          access_token: string | null
+          created_at: string
+          id: number
+          is_active: boolean
+          service_name: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          access_token?: string | null
+          created_at?: string
+          id?: never
+          is_active?: boolean
+          service_name: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          access_token?: string | null
+          created_at?: string
+          id?: never
+          is_active?: boolean
+          service_name?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
       }
       template_items: {
         Row: {
