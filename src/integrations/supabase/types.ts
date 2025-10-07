@@ -14,6 +14,75 @@ export type Database = {
   }
   public: {
     Tables: {
+      admin_activity_logs: {
+        Row: {
+          action: string
+          admin_id: string
+          created_at: string
+          details: Json | null
+          id: number
+          target_id: string | null
+          target_type: string | null
+        }
+        Insert: {
+          action: string
+          admin_id: string
+          created_at?: string
+          details?: Json | null
+          id?: never
+          target_id?: string | null
+          target_type?: string | null
+        }
+        Update: {
+          action?: string
+          admin_id?: string
+          created_at?: string
+          details?: Json | null
+          id?: never
+          target_id?: string | null
+          target_type?: string | null
+        }
+        Relationships: []
+      }
+      announcements: {
+        Row: {
+          content: string
+          created_at: string
+          created_by: string
+          end_date: string | null
+          id: number
+          is_active: boolean
+          start_date: string
+          title: string
+          type: string
+          updated_at: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          created_by: string
+          end_date?: string | null
+          id?: never
+          is_active?: boolean
+          start_date?: string
+          title: string
+          type?: string
+          updated_at?: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          created_by?: string
+          end_date?: string | null
+          id?: never
+          is_active?: boolean
+          start_date?: string
+          title?: string
+          type?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       challenge_participants: {
         Row: {
           challenge_id: number
@@ -186,6 +255,66 @@ export type Database = {
           },
         ]
       }
+      error_logs: {
+        Row: {
+          created_at: string
+          error_message: string
+          error_stack: string | null
+          id: number
+          page_url: string | null
+          severity: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          error_message: string
+          error_stack?: string | null
+          id?: never
+          page_url?: string | null
+          severity?: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          error_message?: string
+          error_stack?: string | null
+          id?: never
+          page_url?: string | null
+          severity?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      feature_flags: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: number
+          is_enabled: boolean
+          name: string
+          rollout_percentage: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: never
+          is_enabled?: boolean
+          name: string
+          rollout_percentage?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: never
+          is_enabled?: boolean
+          name?: string
+          rollout_percentage?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       goals: {
         Row: {
           created_at: string
@@ -226,19 +355,31 @@ export type Database = {
       }
       profiles: {
         Row: {
+          ban_reason: string | null
           created_at: string
           id: string
+          last_active_at: string | null
+          status: Database["public"]["Enums"]["user_status"]
           streak_tracker_id: number | null
+          suspended_until: string | null
         }
         Insert: {
+          ban_reason?: string | null
           created_at?: string
           id: string
+          last_active_at?: string | null
+          status?: Database["public"]["Enums"]["user_status"]
           streak_tracker_id?: number | null
+          suspended_until?: string | null
         }
         Update: {
+          ban_reason?: string | null
           created_at?: string
           id?: string
+          last_active_at?: string | null
+          status?: Database["public"]["Enums"]["user_status"]
           streak_tracker_id?: number | null
+          suspended_until?: string | null
         }
         Relationships: [
           {
@@ -280,6 +421,48 @@ export type Database = {
         }
         Relationships: []
       }
+      support_tickets: {
+        Row: {
+          admin_response: string | null
+          created_at: string
+          id: number
+          message: string
+          priority: string
+          responded_at: string | null
+          responded_by: string | null
+          status: string
+          subject: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          admin_response?: string | null
+          created_at?: string
+          id?: never
+          message: string
+          priority?: string
+          responded_at?: string | null
+          responded_by?: string | null
+          status?: string
+          subject: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          admin_response?: string | null
+          created_at?: string
+          id?: never
+          message?: string
+          priority?: string
+          responded_at?: string | null
+          responded_by?: string | null
+          status?: string
+          subject?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       template_items: {
         Row: {
           id: number
@@ -311,31 +494,46 @@ export type Database = {
       }
       tracker_templates: {
         Row: {
+          approval_status: string
           category: string
           clone_count: number
           created_at: string
           creator_id: string
           description: string
           id: number
+          is_featured: boolean
           name: string
+          rejection_reason: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
         }
         Insert: {
+          approval_status?: string
           category: string
           clone_count?: number
           created_at?: string
           creator_id: string
           description: string
           id?: never
+          is_featured?: boolean
           name: string
+          rejection_reason?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
         }
         Update: {
+          approval_status?: string
           category?: string
           clone_count?: number
           created_at?: string
           creator_id?: string
           description?: string
           id?: never
+          is_featured?: boolean
           name?: string
+          rejection_reason?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
         }
         Relationships: []
       }
@@ -442,6 +640,7 @@ export type Database = {
     }
     Enums: {
       app_role: "admin" | "user"
+      user_status: "active" | "suspended" | "banned"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -570,6 +769,7 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin", "user"],
+      user_status: ["active", "suspended", "banned"],
     },
   },
 } as const
