@@ -9,9 +9,11 @@ import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { Shield, Plus, Trash2, LogOut, Users, Target, TrendingUp, Image as ImageIcon, FileText } from "lucide-react";
+import { Shield, Plus, Trash2, LogOut, Users, Target, TrendingUp, Image as ImageIcon, FileText, Edit, UserX, Search, ToggleLeft, ToggleRight } from "lucide-react";
 import type { User } from "@supabase/supabase-js";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Switch } from "@/components/ui/switch";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 
 interface Challenge {
   id: number;
@@ -44,6 +46,13 @@ interface DailyLog {
   created_at: string;
 }
 
+interface UserWithEmail {
+  id: string;
+  email: string;
+  created_at: string;
+  last_sign_in_at: string;
+}
+
 const Admin = () => {
   const navigate = useNavigate();
   const [user, setUser] = useState<User | null>(null);
@@ -53,9 +62,14 @@ const Admin = () => {
   const [insights, setInsights] = useState<CommunityInsight[]>([]);
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [photos, setPhotos] = useState<DailyLog[]>([]);
+  const [usersWithEmail, setUsersWithEmail] = useState<UserWithEmail[]>([]);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [deleteUserId, setDeleteUserId] = useState<string | null>(null);
 
   // Challenge form
   const [isAddChallengeOpen, setIsAddChallengeOpen] = useState(false);
+  const [isEditChallengeOpen, setIsEditChallengeOpen] = useState(false);
+  const [editingChallenge, setEditingChallenge] = useState<Challenge | null>(null);
   const [challengeName, setChallengeName] = useState("");
   const [challengeDesc, setChallengeDesc] = useState("");
   const [challengeType, setChallengeType] = useState("");
@@ -63,6 +77,8 @@ const Admin = () => {
 
   // Insight form
   const [isAddInsightOpen, setIsAddInsightOpen] = useState(false);
+  const [isEditInsightOpen, setIsEditInsightOpen] = useState(false);
+  const [editingInsight, setEditingInsight] = useState<CommunityInsight | null>(null);
   const [insightTitle, setInsightTitle] = useState("");
   const [insightContent, setInsightContent] = useState("");
 
@@ -104,6 +120,7 @@ const Admin = () => {
       loadInsights();
       loadProfiles();
       loadPhotos();
+      loadUsersWithEmail();
     };
 
     checkAuth();
@@ -253,10 +270,150 @@ const Admin = () => {
     setPhotos(data || []);
   };
 
+  const loadUsersWithEmail = async () => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+      const response = await fetch(
+        `${supabaseUrl}/functions/v1/admin-get-users`,
+        {
+          headers: {
+            Authorization: `Bearer ${session?.access_token}`,
+          },
+        }
+      );
+
+      if (!response.ok) throw new Error("Failed to fetch users");
+
+      const { users } = await response.json();
+      setUsersWithEmail(users || []);
+    } catch (error) {
+      console.error("Error loading users:", error);
+    }
+  };
+
+  const handleEditChallenge = (challenge: Challenge) => {
+    setEditingChallenge(challenge);
+    setChallengeName(challenge.name);
+    setChallengeDesc(challenge.description);
+    setChallengeType(challenge.tracker_type);
+    setChallengeTarget(challenge.target_value.toString());
+    setIsEditChallengeOpen(true);
+  };
+
+  const handleUpdateChallenge = async () => {
+    if (!editingChallenge) return;
+
+    const { error } = await supabase
+      .from("challenges")
+      .update({
+        name: challengeName,
+        description: challengeDesc,
+        tracker_type: challengeType,
+        target_value: parseFloat(challengeTarget),
+      })
+      .eq("id", editingChallenge.id);
+
+    if (error) {
+      toast.error("챌린지 수정 실패: " + error.message);
+      return;
+    }
+
+    toast.success("챌린지가 수정되었습니다!");
+    setIsEditChallengeOpen(false);
+    setEditingChallenge(null);
+    setChallengeName("");
+    setChallengeDesc("");
+    setChallengeType("");
+    setChallengeTarget("");
+    loadChallenges();
+  };
+
+  const handleToggleChallengeActive = async (id: number, currentStatus: boolean) => {
+    const { error } = await supabase
+      .from("challenges")
+      .update({ is_active: !currentStatus })
+      .eq("id", id);
+
+    if (error) {
+      toast.error("상태 변경 실패: " + error.message);
+      return;
+    }
+
+    toast.success(currentStatus ? "챌린지가 비활성화되었습니다" : "챌린지가 활성화되었습니다");
+    loadChallenges();
+  };
+
+  const handleEditInsight = (insight: CommunityInsight) => {
+    setEditingInsight(insight);
+    setInsightTitle(insight.title);
+    setInsightContent(insight.content);
+    setIsEditInsightOpen(true);
+  };
+
+  const handleUpdateInsight = async () => {
+    if (!editingInsight) return;
+
+    const { error } = await supabase
+      .from("community_insights")
+      .update({
+        title: insightTitle,
+        content: insightContent,
+      })
+      .eq("id", editingInsight.id);
+
+    if (error) {
+      toast.error("인사이트 수정 실패: " + error.message);
+      return;
+    }
+
+    toast.success("인사이트가 수정되었습니다!");
+    setIsEditInsightOpen(false);
+    setEditingInsight(null);
+    setInsightTitle("");
+    setInsightContent("");
+    loadInsights();
+  };
+
+  const handleDeleteUser = async () => {
+    if (!deleteUserId) return;
+
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+      const response = await fetch(
+        `${supabaseUrl}/functions/v1/admin-delete-user`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${session?.access_token}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ userId: deleteUserId }),
+        }
+      );
+
+      if (!response.ok) throw new Error("Failed to delete user");
+
+      toast.success("사용자가 삭제되었습니다");
+      setDeleteUserId(null);
+      loadUsersWithEmail();
+    } catch (error) {
+      toast.error("사용자 삭제 실패");
+      console.error(error);
+    }
+  };
+
   const handleLogout = async () => {
     await supabase.auth.signOut();
     navigate("/auth");
   };
+
+  const filteredUsers = usersWithEmail.filter(
+    (user) =>
+      user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      user.id.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
   if (loading) {
     return (
@@ -369,29 +526,97 @@ const Admin = () => {
                 <Card key={challenge.id} className="shadow-card">
                   <CardHeader>
                     <div className="flex items-start justify-between">
-                      <div>
-                        <CardTitle className="text-lg">{challenge.name}</CardTitle>
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-2">
+                          <CardTitle className="text-lg">{challenge.name}</CardTitle>
+                          <div className="flex items-center gap-1">
+                            {challenge.is_active ? (
+                              <ToggleRight className="w-5 h-5 text-green-500" />
+                            ) : (
+                              <ToggleLeft className="w-5 h-5 text-muted-foreground" />
+                            )}
+                          </div>
+                        </div>
                         <CardDescription className="mt-2">{challenge.description}</CardDescription>
                       </div>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => handleDeleteChallenge(challenge.id)}
-                      >
-                        <Trash2 className="w-4 h-4 text-destructive" />
-                      </Button>
+                      <div className="flex gap-1">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleEditChallenge(challenge)}
+                        >
+                          <Edit className="w-4 h-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleDeleteChallenge(challenge.id)}
+                        >
+                          <Trash2 className="w-4 h-4 text-destructive" />
+                        </Button>
+                      </div>
                     </div>
                   </CardHeader>
                   <CardContent>
-                    <div className="space-y-1 text-sm text-muted-foreground">
-                      <p>타입: {challenge.tracker_type}</p>
-                      <p>목표: {challenge.target_value}</p>
-                      <p>상태: {challenge.is_active ? "활성" : "비활성"}</p>
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="text-muted-foreground">타입: {challenge.tracker_type}</span>
+                        <span className="text-muted-foreground">목표: {challenge.target_value}</span>
+                      </div>
+                      <div className="flex items-center justify-between pt-2 border-t">
+                        <span className="text-sm">활성 상태</span>
+                        <Switch
+                          checked={challenge.is_active}
+                          onCheckedChange={() => handleToggleChallengeActive(challenge.id, challenge.is_active)}
+                        />
+                      </div>
                     </div>
                   </CardContent>
                 </Card>
               ))}
             </div>
+
+            <Dialog open={isEditChallengeOpen} onOpenChange={setIsEditChallengeOpen}>
+              <DialogContent className="z-50 bg-card">
+                <DialogHeader>
+                  <DialogTitle>챌린지 수정</DialogTitle>
+                </DialogHeader>
+                <div className="space-y-4 py-4">
+                  <div className="space-y-2">
+                    <Label>챌린지 이름</Label>
+                    <Input
+                      value={challengeName}
+                      onChange={(e) => setChallengeName(e.target.value)}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>설명</Label>
+                    <Textarea
+                      value={challengeDesc}
+                      onChange={(e) => setChallengeDesc(e.target.value)}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>트래커 타입</Label>
+                    <Input
+                      value={challengeType}
+                      onChange={(e) => setChallengeType(e.target.value)}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>목표값</Label>
+                    <Input
+                      type="number"
+                      value={challengeTarget}
+                      onChange={(e) => setChallengeTarget(e.target.value)}
+                    />
+                  </div>
+                  <Button onClick={handleUpdateChallenge} className="w-full">
+                    수정 완료
+                  </Button>
+                </div>
+              </DialogContent>
+            </Dialog>
 
             {challenges.length === 0 && (
               <Card className="shadow-card">
@@ -454,19 +679,28 @@ const Admin = () => {
                 <Card key={insight.id} className="shadow-card">
                   <CardHeader>
                     <div className="flex items-start justify-between">
-                      <div>
+                      <div className="flex-1">
                         <CardTitle className="text-lg">{insight.title}</CardTitle>
                         <p className="text-sm text-muted-foreground mt-1">
                           {new Date(insight.published_at).toLocaleDateString("ko-KR")}
                         </p>
                       </div>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => handleDeleteInsight(insight.id)}
-                      >
-                        <Trash2 className="w-4 h-4 text-destructive" />
-                      </Button>
+                      <div className="flex gap-1">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleEditInsight(insight)}
+                        >
+                          <Edit className="w-4 h-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleDeleteInsight(insight.id)}
+                        >
+                          <Trash2 className="w-4 h-4 text-destructive" />
+                        </Button>
+                      </div>
                     </div>
                   </CardHeader>
                   <CardContent>
@@ -475,6 +709,34 @@ const Admin = () => {
                 </Card>
               ))}
             </div>
+
+            <Dialog open={isEditInsightOpen} onOpenChange={setIsEditInsightOpen}>
+              <DialogContent className="z-50 bg-card">
+                <DialogHeader>
+                  <DialogTitle>인사이트 수정</DialogTitle>
+                </DialogHeader>
+                <div className="space-y-4 py-4">
+                  <div className="space-y-2">
+                    <Label>제목</Label>
+                    <Input
+                      value={insightTitle}
+                      onChange={(e) => setInsightTitle(e.target.value)}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>내용</Label>
+                    <Textarea
+                      value={insightContent}
+                      rows={6}
+                      onChange={(e) => setInsightContent(e.target.value)}
+                    />
+                  </div>
+                  <Button onClick={handleUpdateInsight} className="w-full">
+                    수정 완료
+                  </Button>
+                </div>
+              </DialogContent>
+            </Dialog>
 
             {insights.length === 0 && (
               <Card className="shadow-card">
@@ -490,41 +752,104 @@ const Admin = () => {
           </TabsContent>
 
           <TabsContent value="members" className="space-y-4">
-            <div>
-              <h3 className="text-xl font-semibold">회원 관리</h3>
-              <p className="text-sm text-muted-foreground">등록된 회원 정보를 확인하세요</p>
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-xl font-semibold">회원 관리</h3>
+                <p className="text-sm text-muted-foreground">등록된 회원 정보를 확인하고 관리하세요</p>
+              </div>
+              <div className="flex items-center gap-2">
+                <Users className="w-5 h-5 text-primary" />
+                <p className="font-semibold">총 회원 수: {usersWithEmail.length}명</p>
+              </div>
             </div>
 
             <Card className="shadow-card">
-              <CardContent className="pt-6">
-                <div className="flex items-center gap-2 mb-4">
-                  <Users className="w-5 h-5 text-primary" />
-                  <p className="font-semibold">총 회원 수: {profiles.length}명</p>
+              <CardContent className="pt-6 space-y-4">
+                <div className="flex items-center gap-2">
+                  <Search className="w-4 h-4 text-muted-foreground" />
+                  <Input
+                    placeholder="이메일 또는 ID로 검색..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="max-w-sm"
+                  />
                 </div>
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>사용자 ID</TableHead>
-                      <TableHead>가입일</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {profiles.map((profile) => (
-                      <TableRow key={profile.id}>
-                        <TableCell className="font-mono text-xs">{profile.id}</TableCell>
-                        <TableCell>{new Date(profile.created_at).toLocaleDateString("ko-KR")}</TableCell>
+                <div className="rounded-md border">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>이메일</TableHead>
+                        <TableHead>가입일</TableHead>
+                        <TableHead>마지막 로그인</TableHead>
+                        <TableHead className="text-right">작업</TableHead>
                       </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-                {profiles.length === 0 && (
+                    </TableHeader>
+                    <TableBody>
+                      {filteredUsers.map((user) => (
+                        <TableRow key={user.id}>
+                          <TableCell>
+                            <div>
+                              <p className="font-medium">{user.email}</p>
+                              <p className="text-xs text-muted-foreground font-mono">{user.id.slice(0, 8)}...</p>
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            {new Date(user.created_at).toLocaleDateString("ko-KR", {
+                              year: "numeric",
+                              month: "short",
+                              day: "numeric",
+                            })}
+                          </TableCell>
+                          <TableCell>
+                            {user.last_sign_in_at
+                              ? new Date(user.last_sign_in_at).toLocaleDateString("ko-KR", {
+                                  year: "numeric",
+                                  month: "short",
+                                  day: "numeric",
+                                })
+                              : "없음"}
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => setDeleteUserId(user.id)}
+                              className="text-destructive hover:text-destructive"
+                            >
+                              <UserX className="w-4 h-4 mr-1" />
+                              강퇴
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+                {filteredUsers.length === 0 && (
                   <div className="py-8 text-center text-muted-foreground">
-                    등록된 회원이 없습니다
+                    {searchTerm ? "검색 결과가 없습니다" : "등록된 회원이 없습니다"}
                   </div>
                 )}
               </CardContent>
             </Card>
           </TabsContent>
+
+          <AlertDialog open={!!deleteUserId} onOpenChange={() => setDeleteUserId(null)}>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>사용자 강퇴</AlertDialogTitle>
+                <AlertDialogDescription>
+                  정말로 이 사용자를 삭제하시겠습니까? 이 작업은 되돌릴 수 없으며, 사용자의 모든 데이터가 삭제됩니다.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>취소</AlertDialogCancel>
+                <AlertDialogAction onClick={handleDeleteUser} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                  삭제
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
 
           <TabsContent value="files" className="space-y-4">
             <div>
